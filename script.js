@@ -1,43 +1,36 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const mailgun = require('mailgun-js');
+const path = require('path');
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const sendGridMail = require('@sendgrid/mail'); 
-const server = express();
+// Mailgun configuration
+const DOMAIN = 'sandboxe6fa42e1c607473ab5208db0e517db07.mailgun.org'; // Replace with your Mailgun domain
+const mg = mailgun({ apiKey: `7ef6bb8a9c86dfe4e4f553982bf2a03b-7a3af442-1862f9a7`, domain: DOMAIN });
 
-// Set your SendGrid API key
-sendGridMail.setApiKey('SG.xynosejdkD3rsSc6pUICqhHCB_Q.97_Cv9rbfe-My4HauXwKPmwheisvmhM6wgF2PVK4f'); // SendGrid API key
+const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Configure middleware
-server.use(bodyParser.urlencoded({ extended: false }));
-server.use(express.static("public"));
-
-// Route to handle GET requests
-server.get('/', (req, res) => {
-    res.sendFile(__dirname + "/index.html");
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '2.1p.html'));
 });
 
-// Route to handle POST requests
-server.post('/', async (req, res) => {
-    const userEmail = req.body.email;
+app.post('/', (req, res) => {
+    const { firstName, lastName, Email } = req.body;
 
-    const emailContent = {
-        to: userEmail, // Recipient's email address
-        from: 'dishant4776.be23@chitkara.edu.in', // Your verified sender email
-        subject: 'Welcome to Our Membership Program!',
-        text: 'Congratulations! You are now a platinum member of our organization.',
+    const data = {
+        from: 'Dev@Deakin Newsletter <newsletter@sandboxe6fa42e1c607473ab5208db0e517db07.mailgun.org>',
+        to: Email,
+        subject: 'Newsletter Subscription',
+        text: `Hello ${firstName} ${lastName},\n\nThank you for subscribing to our newsletter!`
     };
 
-    try {
-        const emailResponse = await sendGridMail.send(emailContent);
-        console.log('Email successfully sent:', emailResponse);
-        res.send("Subscription confirmed! Please check your email for details.");
-    } catch (err) {
-        console.error('Failed to send email:', err);
-        res.send("Oops! There was an error, please try again.");
-    }
+    mg.messages().send(data, (error, body) => {
+        if (error) {
+            return res.status(500).send('Error sending email: ' + error.message);
+        }
+        res.send('You have Subscribed successful! Go and Check your email.');
+    });
 });
 
-// Start the server on port 8000
-server.listen(8000, () => {
-    console.log("Server is up and running on port 8000");
-});
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
